@@ -1,0 +1,57 @@
+
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model user {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  name      String
+  age       Int
+  gender    Int
+  point_total     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model user_token {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model transaction {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  billId    Int
+  point     Int
+  status    Int
+  type      Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model bill {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  name      String
+  price     Decimal
+  point     Int
+  discount  Decimal
+  amount    Decimal
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+
