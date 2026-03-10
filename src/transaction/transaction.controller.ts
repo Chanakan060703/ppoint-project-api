@@ -10,7 +10,7 @@
 } from '@nestjs/common'
 import { Role } from '@prisma/client'
 import { Roles } from '../auth/decorators/roles.decorator'
-import { JwtAuthGuard } from '../auth/gauard/jwt.guard'
+import { JwtAuthGuard } from '../auth/guards/jwt.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
 import { CreateTransactionDto } from './dto/create-transaction.dto'
 import { UpdateTransactionDto } from './dto/update-transaction.dto'
@@ -20,7 +20,7 @@ import { TransactionService } from './transaction.service'
 @Roles(Role.ADMIN)
 @Controller('transaction')
 export class TransactionController {
-  constructor(private readonly transactionService: TransactionService) {}
+  constructor(private readonly transactionService: TransactionService) { }
 
   @Post()
   create(@Body() createTransactionDto: CreateTransactionDto) {

@@ -1,13 +1,13 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common'
 import type { Request } from 'express'
 import { AuthService } from './auth.service'
-import { JwtAuthGuard } from './gauard/jwt.guard'
+import { JwtAuthGuard } from './guards/jwt.guard'
 import { LoginDto } from './dto/login'
 import { RegisterDto } from '../user/dto/register.dto'
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('login')
   login(@Body() loginDto: LoginDto) {

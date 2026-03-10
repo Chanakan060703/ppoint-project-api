@@ -10,7 +10,7 @@
 } from '@nestjs/common'
 import { Role } from '@prisma/client'
 import { Roles } from '../auth/decorators/roles.decorator'
-import { JwtAuthGuard } from '../auth/gauard/jwt.guard'
+import { JwtAuthGuard } from '../auth/guards/jwt.guard'
 import { OwnerOrAdminGuard } from '../auth/guards/owner-or-admin.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
 import { UpdateUserDto } from './dto/update-user.dto'
