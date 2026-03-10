@@ -1,26 +1,54 @@
-import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { Injectable } from '@nestjs/common'
+import { PrismaService } from '../prisma/prisma.service'
+import { Prisma } from '@prisma/client'
+import * as bcrypt from 'bcrypt'
 
 @Injectable()
 export class UserService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+
+  constructor(private prisma: PrismaService) { }
+
+  async findById(id: number) {
+    return this.prisma.user.findUnique({
+      where: { id }
+    })
   }
 
-  findAll() {
-    return `This action returns all user`;
+  async findByUsername(username: string) {
+    return this.prisma.user.findUnique({
+      where: { username }
+    })
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findAll() {
+    return this.prisma.user.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async create(data: Prisma.UserCreateInput) {
+    const hashPassword = await bcrypt.hash(data.password, 10)
+    return this.prisma.user.create({
+      data: {
+        ...data,
+        password: hashPassword
+      }
+    })
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async update(id: number, data: Prisma.UserUpdateInput) {
+    return this.prisma.user.update({
+      where: { id },
+      data
+    })
   }
+
+  async remove(id: number) {
+    return this.prisma.user.delete({
+      where: { id }
+    })
+  }
+
 }
