@@ -5,7 +5,7 @@ import { UpdateUsertokenDto } from './dto/update-usertoken.dto';
 
 @Controller('usertoken')
 export class UsertokenController {
-  constructor(private readonly usertokenService: UsertokenService) {}
+  constructor(private readonly usertokenService: UsertokenService) { }
 
   @Post()
   create(@Body() createUsertokenDto: CreateUsertokenDto) {
