@@ -7,45 +7,45 @@ datasource db {
 }
 
 model User {
-  id          Int       @id @default(autoincrement())
-  username    String    @unique
-  password    String
-  name        String
-  age         Int
-  gender      Gender    @default(MALE)
-  role        Role      @default(USER)
-  pointTotal  Int       @default(0)
-  bills       Bill[]
+  id           Int           @id @default(autoincrement())
+  username     String        @unique
+  password     String
+  name         String
+  age          Int
+  gender       Gender        @default(MALE)
+  role         Role          @default(USER)
+  pointTotal   Int           @default(0)
+  bills        Bill[]
   transactions Transaction[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Bill {
-  id        Int       @id @default(autoincrement())
-  userId    Int
-  user      User      @relation(fields: [userId], references: [id])
-  name      String
-  price     Decimal   @db.Decimal(10,2)
-  discount  Decimal   @db.Decimal(10,2)
-  amount    Decimal   @db.Decimal(10,2)
-  point     Int
+  id           Int           @id @default(autoincrement())
+  userId       Int
+  user         User          @relation(fields: [userId], references: [id])
+  name         String
+  price        Decimal       @db.Decimal(10, 2)
+  discount     Decimal       @db.Decimal(10, 2)
+  amount       Decimal       @db.Decimal(10, 2)
+  point        Int
   transactions Transaction[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Transaction {
-  id        Int       @id @default(autoincrement())
+  id        Int               @id @default(autoincrement())
   userId    Int
   billId    Int?
-  user      User      @relation(fields: [userId], references: [id])
-  bill      Bill?     @relation(fields: [billId], references: [id])
+  user      User              @relation(fields: [userId], references: [id])
+  bill      Bill?             @relation(fields: [billId], references: [id])
   point     Int
   status    TransactionStatus
   type      TransactionType
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 }
 
 enum Role {

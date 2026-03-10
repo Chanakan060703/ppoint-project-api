@@ -1,41 +1,85 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common'
-import { UserService } from '../user/user.service'
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcrypt'
+import { UserService } from '../user/user.service'
+import { RegisterDto } from '../user/dto/register.dto'
+import { LoginDto } from './dto/login'
+
+type AuthUser = {
+  id: number
+  username: string
+  role: string
+  name: string
+  age: number
+  gender: string
+  pointTotal: number
+  createdAt: Date
+  updatedAt: Date
+}
 
 @Injectable()
 export class AuthService {
-
   constructor(
-    private usersService: UserService,
-    private jwtService: JwtService
+    private readonly usersService: UserService,
+    private readonly jwtService: JwtService,
   ) { }
 
   async validateUser(username: string, password: string) {
-    const user = await this.usersService.findByUsername(username)
+    const user = await this.usersService.findAuthByUsername(username)
     if (!user) {
-      throw new UnauthorizedException('Invalid username')
+      throw new UnauthorizedException('Invalid username or password')
     }
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) {
-      throw new UnauthorizedException('Invalid password')
+      throw new UnauthorizedException('Invalid username or password')
     }
-
     return user
   }
 
-  async login(username: string, password: string) {
+  async login(loginDto: LoginDto) {
+    const user = await this.validateUser(loginDto.username, loginDto.password)
+    const publicUser = await this.usersService.findById(user.id)
+    if (!publicUser) {
+      throw new UnauthorizedException('User not found')
+    }
 
-    const user = await this.validateUser(username, password)
     const payload = {
       sub: user.id,
       username: user.username,
-      role: user.role
+      role: user.role,
     }
 
     return {
-      access_token: this.jwtService.sign(payload)
+      access_token: this.jwtService.sign(payload),
     }
   }
 
+  async register(registerDto: RegisterDto) {
+    const existingUser = await this.usersService.findByUsername(
+      registerDto.username,
+    )
+    if (existingUser) {
+      throw new ConflictException('Username already exists')
+    }
+    const user = await this.usersService.create(registerDto)
+
+    const payload = {
+      sub: user.id,
+      username: user.username,
+      role: user.role,
+    }
+
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+      },
+    }
+  }
 }
