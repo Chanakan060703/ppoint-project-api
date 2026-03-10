@@ -1,5 +1,12 @@
 import { Type } from 'class-transformer'
-import { IsInt, IsNotEmpty, IsNumber, IsString, Min } from 'class-validator'
+import {
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator'
 
 export class CreateBillDto {
   @Type(() => Number)
@@ -25,5 +32,12 @@ export class CreateBillDto {
 
   @Type(() => Number)
   @IsInt()
+  @Min(0)
   point: number
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  redeemPoint?: number
 }

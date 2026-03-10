@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body,
   Controller,
   Delete,
@@ -11,19 +11,15 @@ import {
 import { Role } from '@prisma/client'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { JwtAuthGuard } from '../auth/gauard/jwt.guard'
+import { OwnerOrAdminGuard } from '../auth/guards/owner-or-admin.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
-import { RegisterDto } from './dto/register.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import { UserService } from './user.service'
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
-  @Post()
-  create(@Body() registerDto: RegisterDto) {
-    return this.userService.create(registerDto)
-  }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
@@ -32,16 +28,26 @@ export class UserController {
     return this.userService.findAll()
   }
 
+  @UseGuards(JwtAuthGuard, OwnerOrAdminGuard)
+  @Get(':id/points')
+  getCurrentPoints(@Param('id') id: string) {
+    return this.userService.getCurrentPoints(+id)
+  }
+
+  @UseGuards(JwtAuthGuard, OwnerOrAdminGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.userService.findById(+id)
   }
 
+  @UseGuards(JwtAuthGuard, OwnerOrAdminGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(+id, updateUserDto)
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.userService.remove(+id)

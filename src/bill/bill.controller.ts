@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body,
   Controller,
   Delete,
@@ -6,15 +6,21 @@ import {
   Param,
   Patch,
   Post,
-  Put,
+  UseGuards,
 } from '@nestjs/common'
+import { Role } from '@prisma/client'
+import { Roles } from '../auth/decorators/roles.decorator'
+import { JwtAuthGuard } from '../auth/gauard/jwt.guard'
+import { RolesGuard } from '../auth/guards/roles.guard'
 import { BillService } from './bill.service'
 import { CreateBillDto } from './dto/create-bill.dto'
 import { UpdateBillDto } from './dto/update-bill.dto'
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
 @Controller('bill')
 export class BillController {
-  constructor(private readonly billService: BillService) { }
+  constructor(private readonly billService: BillService) {}
 
   @Post()
   create(@Body() createBillDto: CreateBillDto) {

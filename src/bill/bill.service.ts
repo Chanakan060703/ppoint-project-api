@@ -1,5 +1,9 @@
-import { Prisma } from '@prisma/client'
-import { Injectable, NotFoundException } from '@nestjs/common'
+﻿import { Prisma, TransactionStatus, TransactionType } from '@prisma/client'
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateBillDto } from './dto/create-bill.dto'
 import { UpdateBillDto } from './dto/update-bill.dto'
@@ -20,6 +24,7 @@ const billSelect = {
       username: true,
       name: true,
       role: true,
+      pointTotal: true,
     },
   },
   transactions: {
@@ -36,22 +41,117 @@ const billSelect = {
 
 @Injectable()
 export class BillService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createBillDto: CreateBillDto) {
-    await this.ensureUserExists(createBillDto.userId)
+    const redeemPoint = createBillDto.redeemPoint ?? 0
 
-    return this.prisma.bill.create({
-      data: {
-        user: { connect: { id: createBillDto.userId } },
-        name: createBillDto.name,
-        price: createBillDto.price,
-        discount: createBillDto.discount,
-        amount: createBillDto.amount,
-        point: createBillDto.point,
+    if (redeemPoint > 0 && createBillDto.discount <= 0) {
+      throw new BadRequestException(
+        'หากมีการใช้แต้ม ส่วนลดต้องมากกว่า 0',
+      )
+    }
+
+    if (createBillDto.amount < 0) {
+      throw new BadRequestException('ยอดสุทธิห้ามน้อยกว่า 0')
+    }
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const user = await tx.user.findUnique({
+          where: { id: createBillDto.userId },
+          select: {
+            id: true,
+            pointTotal: true,
+          },
+        })
+
+        if (!user) {
+          throw new NotFoundException(
+            `ไม่พบผู้ใช้รหัส ${createBillDto.userId}`,
+          )
+        }
+
+        if (redeemPoint > user.pointTotal) {
+          throw new BadRequestException('คะแนนสะสมของลูกค้าไม่เพียงพอ')
+        }
+
+        const bill = await tx.bill.create({
+          data: {
+            user: { connect: { id: createBillDto.userId } },
+            name: createBillDto.name,
+            price: createBillDto.price,
+            discount: createBillDto.discount,
+            amount: createBillDto.amount,
+            point: createBillDto.point,
+          },
+          select: {
+            id: true,
+          },
+        })
+
+        if (redeemPoint > 0) {
+          const updatedUser = await tx.user.updateMany({
+            where: {
+              id: createBillDto.userId,
+              pointTotal: {
+                gte: redeemPoint,
+              },
+            },
+            data: {
+              pointTotal: {
+                decrement: redeemPoint,
+              },
+            },
+          })
+
+          if (updatedUser.count === 0) {
+            throw new BadRequestException(
+              'ไม่สามารถตัดคะแนนได้ เพราะคะแนนคงเหลือไม่พอ',
+            )
+          }
+
+          await tx.transaction.create({
+            data: {
+              user: { connect: { id: createBillDto.userId } },
+              bill: { connect: { id: bill.id } },
+              point: redeemPoint,
+              status: TransactionStatus.SUCCESS,
+              type: TransactionType.REDEEM,
+            },
+          })
+        }
+
+        if (createBillDto.point > 0) {
+          await tx.user.update({
+            where: { id: createBillDto.userId },
+            data: {
+              pointTotal: {
+                increment: createBillDto.point,
+              },
+            },
+          })
+
+          await tx.transaction.create({
+            data: {
+              user: { connect: { id: createBillDto.userId } },
+              bill: { connect: { id: bill.id } },
+              point: createBillDto.point,
+              status: TransactionStatus.SUCCESS,
+              type: TransactionType.EARN,
+            },
+          })
+        }
+
+        return tx.bill.findUnique({
+          where: { id: bill.id },
+          select: billSelect,
+        })
       },
-      select: billSelect,
-    })
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      },
+    )
   }
 
   async findAll() {
@@ -70,7 +170,7 @@ export class BillService {
     })
 
     if (!bill) {
-      throw new NotFoundException(`Bill with id ${id} not found`)
+      throw new NotFoundException(`ไม่พบบิลรหัส ${id}`)
     }
 
     return bill
@@ -78,6 +178,7 @@ export class BillService {
 
   async update(id: number, updateBillDto: UpdateBillDto) {
     await this.findOne(id)
+
     if (updateBillDto.userId !== undefined) {
       await this.ensureUserExists(updateBillDto.userId)
     }
@@ -87,18 +188,23 @@ export class BillService {
     if (updateBillDto.userId !== undefined) {
       data.user = { connect: { id: updateBillDto.userId } }
     }
+
     if (updateBillDto.name !== undefined) {
       data.name = updateBillDto.name
     }
+
     if (updateBillDto.price !== undefined) {
       data.price = updateBillDto.price
     }
+
     if (updateBillDto.discount !== undefined) {
       data.discount = updateBillDto.discount
     }
+
     if (updateBillDto.amount !== undefined) {
       data.amount = updateBillDto.amount
     }
+
     if (updateBillDto.point !== undefined) {
       data.point = updateBillDto.point
     }
@@ -126,7 +232,7 @@ export class BillService {
     })
 
     if (!user) {
-      throw new NotFoundException(`User with id ${userId} not found`)
+      throw new NotFoundException(`ไม่พบผู้ใช้รหัส ${userId}`)
     }
   }
 }

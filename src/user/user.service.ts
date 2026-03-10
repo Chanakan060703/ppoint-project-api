@@ -1,5 +1,5 @@
-import { Prisma } from '@prisma/client'
-import { Injectable } from '@nestjs/common'
+﻿import { Prisma } from '@prisma/client'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import * as bcrypt from 'bcrypt'
 import { PrismaService } from '../prisma/prisma.service'
 import { RegisterDto } from './dto/register.dto'
@@ -19,7 +19,7 @@ const userPublicSelect = {
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: number) {
     return this.prisma.user.findUnique({
@@ -48,6 +48,29 @@ export class UserService {
         createdAt: 'desc',
       },
     })
+  }
+
+  async getCurrentPoints(id: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        pointTotal: true,
+      },
+    })
+
+    if (!user) {
+      throw new NotFoundException(`ไม่พบผู้ใช้รหัส ${id}`)
+    }
+
+    return {
+      userId: user.id,
+      username: user.username,
+      name: user.name,
+      pointTotal: user.pointTotal,
+    }
   }
 
   async create(data: RegisterDto) {
