@@ -41,7 +41,7 @@ const billSelect = {
 
 @Injectable()
 export class BillService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(createBillDto: CreateBillDto) {
     const redeemPoint = createBillDto.redeemPoint ?? 0

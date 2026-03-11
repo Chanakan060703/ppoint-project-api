@@ -1,3 +1,4 @@
+import { TransactionStatus } from '@prisma/client'
 import { Type } from 'class-transformer'
 import {
   IsInt,
@@ -34,6 +35,9 @@ export class CreateBillDto {
   @IsInt()
   @Min(0)
   point: number
+
+  @IsNotEmpty()
+  status: TransactionStatus
 
   @IsOptional()
   @Type(() => Number)
