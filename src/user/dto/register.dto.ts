@@ -1,4 +1,4 @@
-import { IsEnum, IsNumber, IsString, MaxLength, MinLength, IsNotEmpty } from "class-validator";
+import { IsEnum, IsNumber, IsString, MaxLength, MinLength, IsNotEmpty, IsOptional } from "class-validator";
 import { Role } from "@prisma/client";
 import { Gender } from "@prisma/client";
 
@@ -30,12 +30,7 @@ export class RegisterDto {
     @IsEnum(Gender)
     gender: Gender
 
-    @IsString()
-    @IsNotEmpty()
-    @IsEnum(Role)
-    role: Role
-
     @IsNumber()
-    @IsNotEmpty()
+    @IsOptional()
     pointTotal: number
 }

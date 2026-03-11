@@ -1,47 +1,18 @@
-import { TransactionStatus } from '@prisma/client'
-import { Type } from 'class-transformer'
-import {
-  IsInt,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Min,
-} from 'class-validator'
+import { Type } from 'class-transformer';
+import { IsInt, IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
 
 export class CreateBillDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  userId: number
+  userId: number;
 
   @IsString()
   @IsNotEmpty()
-  name: string
+  name: string;
 
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
-  price: number
-
-  @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 2 })
-  discount: number
-
-  @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 2 })
-  amount: number
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  point: number
-
-  @IsNotEmpty()
-  status: TransactionStatus
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  redeemPoint?: number
+  @Min(1)
+  price: number;
 }

@@ -1,9 +1,5 @@
-﻿import { Prisma, TransactionStatus, TransactionType } from '@prisma/client'
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common'
+import { Prisma, TransactionStatus, TransactionType } from '@prisma/client'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateBillDto } from './dto/create-bill.dto'
 import { UpdateBillDto } from './dto/update-bill.dto'
@@ -23,7 +19,6 @@ const billSelect = {
       id: true,
       username: true,
       name: true,
-      role: true,
       pointTotal: true,
     },
   },
@@ -44,77 +39,39 @@ export class BillService {
   constructor(private readonly prisma: PrismaService) { }
 
   async create(createBillDto: CreateBillDto) {
-    const redeemPoint = createBillDto.redeemPoint ?? 0
-
-    if (redeemPoint > 0 && createBillDto.discount <= 0) {
-      throw new BadRequestException(
-        'หากมีการใช้แต้ม ส่วนลดต้องมากกว่า 0',
-      )
-    }
-
-    if (createBillDto.amount < 0) {
-      throw new BadRequestException('ยอดสุทธิห้ามน้อยกว่า 0')
-    }
+    const { userId, name, price } = createBillDto
 
     return this.prisma.$transaction(
-      async (tx) => {
+      async (tx: Prisma.TransactionClient) => {
         const user = await tx.user.findUnique({
-          where: { id: createBillDto.userId },
-          select: {
-            id: true,
-            pointTotal: true,
-          },
+          where: { id: userId },
+          select: { id: true, pointTotal: true },
         })
 
-        if (!user) {
-          throw new NotFoundException(
-            `ไม่พบผู้ใช้รหัส ${createBillDto.userId}`,
-          )
-        }
+        if (!user) throw new NotFoundException(`ไม่พบผู้ใช้รหัส ${userId}`)
 
-        if (redeemPoint > user.pointTotal) {
-          throw new BadRequestException('คะแนนสะสมของลูกค้าไม่เพียงพอ')
-        }
+        const redeemPoint = Math.min(user.pointTotal, Math.floor(price))
+        const discount = new Prisma.Decimal(redeemPoint)
+        const amount = new Prisma.Decimal(price).sub(discount)
+        const earnPoint = Math.floor(price * 0.1)
 
         const bill = await tx.bill.create({
           data: {
-            user: { connect: { id: createBillDto.userId } },
-            name: createBillDto.name,
-            price: createBillDto.price,
-            discount: createBillDto.discount,
-            amount: createBillDto.amount,
-            point: createBillDto.point,
+            userId,
+            name,
+            price,
+            discount,
+            amount,
+            point: earnPoint,
           },
-          select: {
-            id: true,
-          },
+          select: { id: true },
         })
 
         if (redeemPoint > 0) {
-          const updatedUser = await tx.user.updateMany({
-            where: {
-              id: createBillDto.userId,
-              pointTotal: {
-                gte: redeemPoint,
-              },
-            },
-            data: {
-              pointTotal: {
-                decrement: redeemPoint,
-              },
-            },
-          })
-
-          if (updatedUser.count === 0) {
-            throw new BadRequestException(
-              'ไม่สามารถตัดคะแนนได้ เพราะคะแนนคงเหลือไม่พอ',
-            )
-          }
-
           await tx.transaction.create({
             data: {
-              user: { connect: { id: createBillDto.userId } },
-              bill: { connect: { id: bill.id } },
+              userId,
+              billId: bill.id,
               point: redeemPoint,
               status: TransactionStatus.SUCCESS,
               type: TransactionType.REDEEM,
@@ -122,23 +79,28 @@ export class BillService {
           })
         }
 
-        if (createBillDto.point > 0) {
-          await tx.user.update({
-            where: { id: createBillDto.userId },
-            data: {
-              pointTotal: {
-                increment: createBillDto.point,
-              },
-            },
-          })
-
+        if (earnPoint > 0) {
           await tx.transaction.create({
             data: {
-              user: { connect: { id: createBillDto.userId } },
-              bill: { connect: { id: bill.id } },
-              point: createBillDto.point,
+              userId,
+              billId: bill.id,
+              point: earnPoint,
               status: TransactionStatus.SUCCESS,
               type: TransactionType.EARN,
+            },
+          })
+        }
+
+        const netPoint = earnPoint - redeemPoint
+
+        if (netPoint !== 0) {
+          await tx.user.update({
+            where: { id: userId },
+            data: {
+              pointTotal:
+                netPoint > 0
+                  ? { increment: netPoint }
+                  : { decrement: Math.abs(netPoint) },
             },
           })
         }
@@ -148,9 +110,7 @@ export class BillService {
           select: billSelect,
         })
       },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
     )
   }
 

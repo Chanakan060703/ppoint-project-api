@@ -18,6 +18,7 @@ export class CreateTransactionDto {
   @IsInt()
   point: number
 
+  @IsOptional()
   @IsNotEmpty()
   @IsEnum(TransactionStatus)
   status: TransactionStatus

@@ -17,7 +17,6 @@ import { UpdateTransactionDto } from './dto/update-transaction.dto'
 import { TransactionService } from './transaction.service'
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
 @Controller('transaction')
 export class TransactionController {
   constructor(private readonly transactionService: TransactionService) { }
