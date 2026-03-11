@@ -39,7 +39,7 @@ export class BillService {
   constructor(private readonly prisma: PrismaService) { }
 
   async create(createBillDto: CreateBillDto) {
-    const { userId, name, price } = createBillDto
+    const { userId, name, price, redeemPoint: requestedRedeemPoint } = createBillDto
 
     return this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
@@ -50,7 +50,11 @@ export class BillService {
 
         if (!user) throw new NotFoundException(`ไม่พบผู้ใช้รหัส ${userId}`)
 
-        const redeemPoint = Math.min(user.pointTotal, Math.floor(price))
+        const redeemPoint = Math.min(
+          requestedRedeemPoint ?? user.pointTotal,
+          user.pointTotal,
+          Math.floor(price),
+        )
         const discount = new Prisma.Decimal(redeemPoint)
         const amount = new Prisma.Decimal(price).sub(discount)
         const earnPoint = Math.floor(price * 0.1)
