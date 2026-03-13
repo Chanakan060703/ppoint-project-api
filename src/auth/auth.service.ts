@@ -64,7 +64,7 @@ export class AuthService {
       registerDto.username,
     )
     if (existingUser) {
-      throw new ConflictException('Username already exists')
+      throw new ConflictException('ชื่อผู้ใช้นี้มีอยู่แล้ว')
     }
     
     const user = await this.usersService.create(registerDto)
@@ -80,7 +80,7 @@ export class AuthService {
         id: user.id,
         username: user.username,
         role: user.role,
-      },
+      }
     }
   }
 }
