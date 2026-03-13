@@ -66,6 +66,7 @@ export class AuthService {
     if (existingUser) {
       throw new ConflictException('Username already exists')
     }
+    
     const user = await this.usersService.create(registerDto)
 
     const payload = {

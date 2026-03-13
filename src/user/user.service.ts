@@ -1,5 +1,5 @@
 ﻿import { Prisma } from '@prisma/client'
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import * as bcrypt from 'bcrypt'
 import { PrismaService } from '../prisma/prisma.service'
 import { RegisterDto } from './dto/register.dto'
@@ -73,19 +73,34 @@ export class UserService {
     }
   }
 
-  async create(data: RegisterDto) {
-    const hashPassword = await bcrypt.hash(data.password, 10)
-    return this.prisma.user.create({
+async create(data: RegisterDto) {
+  return await this.prisma.$transaction(async (tx) => {
+    
+    const existing = await tx.user.findUnique({
+      where: { username: data.username }
+    });
+    
+    if (existing) {
+      throw new BadRequestException('ชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว');
+    }
+
+    const hashPassword = await bcrypt.hash(data.password, 10);
+
+  const newUser = await tx.user.create({
       data: {
         username: data.username,
         password: hashPassword,
         name: data.name,
         age: data.age,
         gender: data.gender,
+        pointTotal: data.pointTotal || 0, 
       },
       select: userPublicSelect,
-    })
-  }
+    });
+
+    return newUser;
+  });
+}
 
   async update(id: number, data: UpdateUserDto) {
     const nextData: Prisma.UserUpdateInput = {}
